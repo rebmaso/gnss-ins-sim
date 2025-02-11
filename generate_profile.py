@@ -3,6 +3,7 @@ import math
 import datetime
 import numpy as np
 import pandas as pd
+import sys
 from gnss_ins_sim.sim import imu_model
 from gnss_ins_sim.sim import ins_sim
 from gnss_ins_sim.attitude import attitude
@@ -11,7 +12,6 @@ from gnss_ins_sim.attitude import attitude
 D2R = math.pi / 180  # Degrees to radians
 R2D = 180 / math.pi  # Radians to degrees
 
-motion_def_path = os.path.abspath('.//demo_motion_def_files//')
 fs = 100.0  # IMU sample frequency
 fs_gps = 10.0  # GPS sample frequency
 fs_mag = fs  # Magnetometer sample frequency, not used for now
@@ -24,14 +24,13 @@ output_dir = os.path.join(base_output_dir, timestamp)
 os.makedirs(output_dir, exist_ok=True)
 
 def save_trajectory_groves_csv(sim, filename):
-
     # Extract data from sim
     time = np.array(sim.get_data(["time"]))[0] 
     ref_pos = np.array(sim.get_data(["ref_pos"]))[0]
     ref_vel = np.array(sim.get_data(["ref_vel"]))[0] 
     ref_att_quat = np.array(sim.get_data(["ref_att_quat"]))[0]
 
-    # convert quat to euler in xyz order (Groves)
+    # Convert quaternion to euler angles in xyz order (Groves)
     ref_att = np.array([attitude.quat2euler(q, rot_seq="xyz") for q in ref_att_quat])
     
     # Convert radian values to degrees
@@ -54,14 +53,18 @@ def save_trajectory_groves_csv(sim, filename):
     df.to_csv(filename, index=False, header=False)
     print(f"Groves format Profile.csv saved to {filename}")
 
-def test_path_gen():
+def test_path_gen(motion_profile_path):
+    if not os.path.exists(motion_profile_path):
+        print("Error: The specified file does not exist.")
+        return
+    
     # Choose a built-in IMU model, typical for IMU381
     imu_err = 'mid-accuracy'
     imu = imu_model.IMU(accuracy=imu_err, axis=9, gps=True)
 
     # Start simulation
     sim = ins_sim.Sim([fs, fs_gps, fs_mag],
-                      motion_def_path + "//motion_def-Italy.csv",
+                      motion_profile_path,
                       ref_frame=0,  # Use NED frame to match GROVES format
                       imu=imu,
                       mode=None,
@@ -73,4 +76,9 @@ def test_path_gen():
     sim.plot(['ref_pos', 'ref_att_euler'], opt={'ref_pos': '3d'})
 
 if __name__ == '__main__':
-    test_path_gen()
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <motion_profile_file_path>")
+        sys.exit(1)
+    
+    motion_profile_path = sys.argv[1]
+    test_path_gen(motion_profile_path)
