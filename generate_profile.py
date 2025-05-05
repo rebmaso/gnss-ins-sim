@@ -72,8 +72,10 @@ def test_path_gen(motion_profile_path):
                       algorithm=None)
     sim.run(1)
 
-    save_trajectory_groves_csv(sim, os.path.join(output_dir, "Profile.csv"))
-    sim.plot(['ref_pos', 'ref_att_euler'], opt={'ref_pos': '3d'})
+    motion_profile_filename = os.path.basename(motion_profile_path)
+
+    save_trajectory_groves_csv(sim, os.path.join(output_dir, "Profile_" + motion_profile_filename))
+    sim.plot(['ref_pos', 'ref_att_euler', 'ref_vel'], opt={'ref_pos': '3d'})
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
